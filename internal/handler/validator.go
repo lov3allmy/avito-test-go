@@ -18,7 +18,7 @@ func ValidateP2PInput(input domain.P2PInput) []*ErrorResponse {
 	if err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
 			var element ErrorResponse
-			element.FailedField = err.StructNamespace()
+			element.FailedField = err.StructField()
 			element.Tag = err.Tag()
 			element.Value = err.Param()
 			errors = append(errors, &element)

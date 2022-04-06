@@ -8,19 +8,19 @@ type User struct {
 }
 
 type P2PInput struct {
-	FromUserID int `json:"from_user_id" validate:"required"`
-	ToUserID   int `json:"to_user_id" validate:"required"`
-	Amount     int `json:"amount" validate:"required"`
+	FromUserID int `json:"from_user_id" validate:"required,min=0"`
+	ToUserID   int `json:"to_user_id" validate:"required,min=0,nefield=FromUserID"`
+	Amount     int `json:"amount" validate:"required,min=1"`
 }
 
 type GetBalanceInput struct {
-	ID int `json:"user_id" validate:"required"`
+	ID int `json:"user_id" validate:"required,min=0"`
 }
 
 type BalanceOperationInput struct {
-	UserID int    `json:"user_id" validate:"required"`
-	Amount int    `json:"amount" validate:"required"`
-	Type   string `json:"type" validate:"required"`
+	UserID int    `json:"user_id" validate:"required,min=0"`
+	Amount int    `json:"amount" validate:"required,min=1"`
+	Type   string `json:"type" validate:"required,oneof=add subtract"`
 }
 
 type Repository interface {

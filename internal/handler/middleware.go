@@ -83,15 +83,6 @@ func (h *Handler) CheckP2PInput(c *fiber.Ctx) error {
 		})
 	}
 
-	if p2pInput.Amount <= 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
-			"massage": "transfer amount must be positive",
-		})
-	}
-
-	c.Locals("fromUserID", fromUser.ID)
-	c.Locals("toUserID", toUser.ID)
-	c.Locals("transferAmount", p2pInput.Amount)
 	c.Locals("p2pInput", p2pInput)
 	return c.Next()
 }
@@ -109,12 +100,6 @@ func (h *Handler) CheckBalanceOperationInput(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
 			"message": "invalid request body",
 			"errors":  err,
-		})
-	}
-
-	if balanceOperationInput.Type != "add" && balanceOperationInput.Type != "subtract" {
-		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
-			"message": "invalid balance operation type",
 		})
 	}
 
@@ -140,15 +125,8 @@ func (h *Handler) CheckBalanceOperationInput(c *fiber.Ctx) error {
 			})
 		}
 	}
-	c.Locals("userID", user.ID)
 
-	if balanceOperationInput.Amount <= 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
-			"message": "balance operation amount must be positive",
-		})
-	}
-
-	if balanceOperationInput.Type == "subtraction" {
+	if balanceOperationInput.Type == "subtract" {
 		if user.Balance < balanceOperationInput.Amount {
 			return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
 				"message": "not enough balance to make operation",
