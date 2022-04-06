@@ -2,11 +2,11 @@ package handler
 
 import (
 	"errors"
-	"github.com/go-playground/assert/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/lov3allmy/avito-test-go/internal/domain"
 	mock_domain "github.com/lov3allmy/avito-test-go/internal/mocks"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http/httptest"
 	"testing"
