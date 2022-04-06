@@ -1,25 +1,27 @@
-package user
+package handler
 
 import (
-	"context"
 	"github.com/gofiber/fiber/v2"
+	"github.com/lov3allmy/avito-test-go/internal/domain"
 )
 
-func (h *Handler) checkGetBalanceInput(c *fiber.Ctx) error {
-	userInput := struct {
-		ID int `json:"user_id"`
-	}{}
+func (h *Handler) CheckGetBalanceInput(c *fiber.Ctx) error {
+	getBalanceInput := domain.GetBalanceInput{}
 
-	if err := c.BodyParser(&userInput); err != nil {
+	if err := c.BodyParser(&getBalanceInput); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
 			"message": "parsing data from request body failed with error: " + err.Error(),
 		})
 	}
 
-	customContext, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	if err := ValidateGetBalanceInput(getBalanceInput); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
+			"message": "invalid request body",
+			"errors":  err,
+		})
+	}
 
-	user, err := h.service.GetUser(customContext, userInput.ID)
+	user, err := h.service.GetUser(getBalanceInput.ID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(&fiber.Map{
 			"message": `getting user with that "user_id" from db failed with error: ` + err.Error(),
@@ -35,12 +37,8 @@ func (h *Handler) checkGetBalanceInput(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func (h *Handler) checkP2PInput(c *fiber.Ctx) error {
-	p2pInput := struct {
-		FromUserID int `json:"from_user_id"`
-		ToUserID   int `json:"to_user_id"`
-		Amount     int `json:"amount"`
-	}{}
+func (h *Handler) CheckP2PInput(c *fiber.Ctx) error {
+	p2pInput := domain.P2PInput{}
 
 	if err := c.BodyParser(&p2pInput); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
@@ -48,10 +46,14 @@ func (h *Handler) checkP2PInput(c *fiber.Ctx) error {
 		})
 	}
 
-	customContext, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	if err := ValidateP2PInput(p2pInput); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
+			"message": "invalid request body",
+			"errors":  err,
+		})
+	}
 
-	fromUser, err := h.service.GetUser(customContext, p2pInput.FromUserID)
+	fromUser, err := h.service.GetUser(p2pInput.FromUserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(&fiber.Map{
 			"message": `getting user with that "from_user_id" from db failed with error: ` + err.Error(),
@@ -69,7 +71,7 @@ func (h *Handler) checkP2PInput(c *fiber.Ctx) error {
 		})
 	}
 
-	toUser, err := h.service.GetUser(customContext, p2pInput.ToUserID)
+	toUser, err := h.service.GetUser(p2pInput.ToUserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(&fiber.Map{
 			"message": `getting user with that "to_user_id" from db failed with error: ` + err.Error(),
@@ -90,19 +92,23 @@ func (h *Handler) checkP2PInput(c *fiber.Ctx) error {
 	c.Locals("fromUserID", fromUser.ID)
 	c.Locals("toUserID", toUser.ID)
 	c.Locals("transferAmount", p2pInput.Amount)
+	c.Locals("p2pInput", p2pInput)
 	return c.Next()
 }
 
-func (h *Handler) checkBalanceOperationInput(c *fiber.Ctx) error {
-	balanceOperationInput := struct {
-		UserID int    `json:"user_id"`
-		Amount int    `json:"amount"`
-		Type   string `json:"type"`
-	}{}
+func (h *Handler) CheckBalanceOperationInput(c *fiber.Ctx) error {
+	balanceOperationInput := domain.BalanceOperationInput{}
 
 	if err := c.BodyParser(&balanceOperationInput); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
 			"message": "parsing data from request body failed with error: " + err.Error(),
+		})
+	}
+
+	if err := ValidateBalanceOperationInput(balanceOperationInput); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
+			"message": "invalid request body",
+			"errors":  err,
 		})
 	}
 
@@ -112,10 +118,7 @@ func (h *Handler) checkBalanceOperationInput(c *fiber.Ctx) error {
 		})
 	}
 
-	customContext, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	user, err := h.service.GetUser(customContext, balanceOperationInput.UserID)
+	user, err := h.service.GetUser(balanceOperationInput.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(&fiber.Map{
 			"message": `getting user with that "user_id" from db failed with error: ` + err.Error(),
@@ -127,10 +130,10 @@ func (h *Handler) checkBalanceOperationInput(c *fiber.Ctx) error {
 				"message": `there is no user with that "user_id"`,
 			})
 		}
-		user = &User{
+		user = &domain.User{
 			ID: balanceOperationInput.UserID,
 		}
-		err := h.service.CreateUser(customContext, user)
+		err := h.service.CreateUser(user)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(&fiber.Map{
 				"massage": `creating user with that "user_id" in db failed with error: ` + err.Error(),

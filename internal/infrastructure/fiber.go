@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	_ "github.com/lib/pq"
-	"github.com/lov3allmy/avito-test-go/internal/user"
+	handler2 "github.com/lov3allmy/avito-test-go/internal/handler"
+	"github.com/lov3allmy/avito-test-go/internal/repository"
+	"github.com/lov3allmy/avito-test-go/internal/service"
 	"log"
 )
 
@@ -18,11 +20,15 @@ func Run() {
 		AppName: "Avito Test Go",
 	})
 
-	userRepository := user.NewRepository(postgres)
+	userRepository := repository.NewRepository(postgres)
 
-	userService := user.NewService(userRepository)
+	userService := service.NewService(userRepository)
 
-	user.NewHandler(app.Group("/api/users"), userService)
+	userHandler := handler2.NewHandler(userService)
+
+	api := app.Group("/api")
+
+	handler2.Router(api, userHandler)
 
 	app.All("*", func(c *fiber.Ctx) error {
 		errorMessage := fmt.Sprintf("Route '%s' does not exist in this API!", c.OriginalURL())

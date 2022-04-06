@@ -1,10 +1,10 @@
-package user
+package repository
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lov3allmy/avito-test-go/internal/domain"
 )
 
 const (
@@ -19,16 +19,16 @@ type repository struct {
 	postgres *sqlx.DB
 }
 
-func NewRepository(db *sqlx.DB) Repository {
+func NewRepository(db *sqlx.DB) domain.Repository {
 	return &repository{
 		postgres: db,
 	}
 }
 
-func (r *repository) GetUser(ctx context.Context, userID int) (*User, error) {
-	user := &User{}
+func (r *repository) GetUser(userID int) (*domain.User, error) {
+	user := &domain.User{}
 
-	err := r.postgres.GetContext(ctx, user, QueryGetUser, userID)
+	err := r.postgres.Get(user, QueryGetUser, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -39,8 +39,8 @@ func (r *repository) GetUser(ctx context.Context, userID int) (*User, error) {
 	return user, nil
 }
 
-func (r *repository) CreateUser(ctx context.Context, user *User) error {
-	res, err := r.postgres.ExecContext(ctx, QueryCreateUser, user.ID, user.Balance)
+func (r *repository) CreateUser(user *domain.User) error {
+	res, err := r.postgres.Exec(QueryCreateUser, user.ID, user.Balance)
 	if err != nil {
 		return err
 	}
@@ -54,8 +54,8 @@ func (r *repository) CreateUser(ctx context.Context, user *User) error {
 	return nil
 }
 
-func (r *repository) UpdateUser(ctx context.Context, userID int, user *User) error {
-	res, err := r.postgres.ExecContext(ctx, QueryUpdateUser, user.Balance, userID)
+func (r *repository) UpdateUser(userID int, user *domain.User) error {
+	res, err := r.postgres.Exec(QueryUpdateUser, user.Balance, userID)
 	if err != nil {
 		return err
 	}
@@ -70,13 +70,13 @@ func (r *repository) UpdateUser(ctx context.Context, userID int, user *User) err
 	return nil
 }
 
-func (r *repository) makeP2PTransfer(ctx context.Context, fromUserID, toUserID, amount int) error {
-	tx, err := r.postgres.BeginTx(ctx, &sql.TxOptions{})
+func (r *repository) MakeP2PTransfer(p2pInput domain.P2PInput) error {
+	tx, err := r.postgres.Begin()
 	if err != nil {
 		return err
 	}
 
-	res, err := tx.Exec(QueryTakeFromUserBalance, amount, fromUserID)
+	res, err := tx.Exec(QueryTakeFromUserBalance, p2pInput.Amount, p2pInput.FromUserID)
 	if err != nil {
 		_ = tx.Rollback()
 		return err
@@ -91,7 +91,7 @@ func (r *repository) makeP2PTransfer(ctx context.Context, fromUserID, toUserID, 
 		return errors.New("no one rows updated")
 	}
 
-	res, err = tx.Exec(QueryPutToUserBalance, amount, toUserID)
+	res, err = tx.Exec(QueryPutToUserBalance, p2pInput.Amount, p2pInput.ToUserID)
 	if err != nil {
 		_ = tx.Rollback()
 		return err
